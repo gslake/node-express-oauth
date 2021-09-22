@@ -79,6 +79,28 @@ app.get('/authorize', (req, res) => {
 	})
 })
 
+app.post('/approve', (req,res) => {
+	const {userName, password, requestId} = req.body
+	if (!userName || users[userName] !== password) {
+		res.status(401).send("Error: user not authorized")
+		return
+	}
+	const clientReq = requests[requestId]
+	delete requests[requestId]
+	if (!clientReq) {
+		res.status(401).send("Error: invalid user request")
+		return
+	}
+	const code = randomString()
+	authorizationCodes[code] = { clientReq, userName }
+	const redirectUri = url.parse(clientReq.redirect_uri)
+	redirectUri.query = {
+		code,
+		state: clientReq.state
+	}
+	res.redirect(url.format(redirectUri))
+})
+
 // for testing purposes
 
 module.exports = { app, requests, authorizationCodes, server }
